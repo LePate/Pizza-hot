@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/sidebar :: html_head('Dashboard - Pizza Eshushon')}"></head>
+<body class="bg-light" style="overflow-x: hidden;">
+
+<div class="d-flex">
+    <!-- Sidebar Fragment -->
+    <div th:replace="~{fragments/sidebar :: sidebar('dashboard')}"></div>
+
+    <!-- Main Content Panel -->
+    <div class="flex-grow-1 p-4" style="height: 100vh; overflow-y: auto;">
+
+        <!-- Header -->
+        <div class="mb-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold text-dark m-0">¡Bienvenido, Administrador!</h2>
+                <p class="text-muted" style="font-size: 0.95rem;">Resumen de actividad y rendimiento del día de hoy</p>
+            </div>
+            <div class="bg-white px-3 py-2 rounded-4 shadow-sm border d-flex align-items-center gap-2">
+                <i class="bi bi-calendar3 text-danger"></i>
+                <span class="fw-semibold text-dark" th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy')}">01/06/2026</span>
+            </div>
+        </div>
+
+        <!-- KPI Cards Grid -->
+        <div class="row g-3 mb-4">
+            <!-- Sales Count -->
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 d-flex flex-row justify-content-between align-items-center bg-white">
+                    <div>
+                        <small class="text-muted fw-semibold d-block mb-1">Ventas de Hoy</small>
+                        <h3 class="fw-bold text-dark m-0" th:text="${ventasCount != null ? ventasCount : '0'}">0</h3>
+                        <small class="text-success fw-semibold" style="font-size: 0.8rem;">
+                            <i class="bi bi-graph-up-arrow"></i> Transacciones
+                        </small>
+                    </div>
+                    <div class="bg-danger-subtle text-danger rounded-3 p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                        <i class="bi bi-bag-check-fill"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue -->
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 d-flex flex-row justify-content-between align-items-center bg-white">
+                    <div>
+                        <small class="text-muted fw-semibold d-block mb-1">Ingresos de Hoy</small>
+                        <h3 class="fw-bold text-dark m-0" th:text="${totalSistema != null ? 'S/ ' + #numbers.formatDecimal(totalSistema, 1, 2) : 'S/ 0.00'}">S/ 0.00</h3>
+                        <small class="text-success fw-semibold" style="font-size: 0.8rem;">
+                            <i class="bi bi-currency-dollar"></i> Caja Actual
+                        </small>
+                    </div>
+                    <div class="bg-success-subtle text-success rounded-3 p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                        <i class="bi bi-cash-coin"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Products -->
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 d-flex flex-row justify-content-between align-items-center bg-white">
+                    <div>
+                        <small class="text-muted fw-semibold d-block mb-1">Productos Activos</small>
+                        <h3 class="fw-bold text-dark m-0" th:text="${productosCount != null ? productosCount : '0'}">0</h3>
+                        <small class="text-muted" style="font-size: 0.8rem;">En catálogo de ventas</small>
+                    </div>
+                    <div class="bg-primary-subtle text-primary rounded-3 p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                        <i class="bi bi-box-seam-fill"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Critical Stock -->
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 d-flex flex-row justify-content-between align-items-center bg-white">
+                    <div>
+                        <small class="text-muted fw-semibold d-block mb-1">Stock Bajo</small>
+                        <h3 class="fw-bold m-0 animate__animated"
+                            th:classappend="${alertas != null && !alertas.isEmpty()} ? 'text-danger' : 'text-dark'"
+                            th:text="${alertas != null ? alertas.size() : '0'}">0</h3>
+                        <small class="text-muted" style="font-size: 0.8rem;">Productos críticos (≤5 u.)</small>
+                    </div>
+                    <div class="rounded-3 p-3 fs-4 d-flex align-items-center justify-content-center" 
+                         th:classappend="${alertas != null && !alertas.isEmpty()} ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning'"
+                         style="width: 54px; height: 54px;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- Latest Sales Section -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark m-0">Últimas Ventas de Hoy</h5>
+                        <span class="badge bg-danger-subtle text-danger rounded-pill px-3 py-1 fw-bold" style="font-size: 0.75rem;">Reciente</span>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div th:if="${ventas == null || ventas.isEmpty()}" class="text-center text-muted py-5">
+                        <i class="bi bi-basket3 display-4 text-secondary mb-2 d-block"></i>
+                        <p class="m-0 fw-medium">No se han registrado ventas el día de hoy.</p>
+                        <small class="text-muted">Las nuevas transacciones aparecerán aquí en tiempo real.</small>
+                    </div>
+
+                    <!-- Sales List -->
+                    <div th:if="${ventas != null && !ventas.isEmpty()}" class="d-flex flex-column gap-3">
+                        <div th:each="v : ${ventas}" class="p-3 rounded-4 d-flex justify-content-between align-items-center shadow-xs border" style="background-color: #fdfaf4 !important;">
+                            <div>
+                                <h6 class="fw-bold m-0 text-dark" style="font-size: 0.95rem;" th:text="'Venta #' + ${v.idVenta}">V001</h6>
+                                <small class="text-muted fw-medium d-block mt-1">
+                                    <i class="bi bi-clock me-1"></i>
+                                    <span th:text="${#temporals.format(v.fecha, 'hh:mm a')}">06:30 PM</span> 
+                                    • 
+                                    <span th:text="${#lists.size(v.detalles)} + ' ítems'">1 ítems</span>
+                                </small>
+                                <small class="text-muted" style="font-size: 0.8rem;" th:text="'Atendido por: ' + ${v.empleado.nombre}"></small>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold text-danger d-block mb-1 fs-5" th:text="'S/ ' + ${#numbers.formatDecimal(v.total, 1, 2)}">S/ 0.00</span>
+                                <span class="badge rounded-pill uppercase px-3 py-1 fw-bold" 
+                                      th:classappend="${v.tipoEntrega == 'EFECTIVO' ? 'bg-secondary-subtle text-dark border border-secondary' : 
+                                                       v.tipoEntrega == 'YAPE' ? 'bg-info-subtle text-info border border-info' : 
+                                                       'bg-primary-subtle text-primary border border-primary'}"
+                                      th:text="${v.tipoEntrega}" style="font-size: 0.7rem; letter-spacing: 0.5px;">EFECTIVO</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Alerts Section -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark m-0">Alertas de Inventario</h5>
+                        <span class="badge rounded-pill px-3 py-1 fw-bold" 
+                              th:classappend="${alertas != null && !alertas.isEmpty()} ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'"
+                              th:text="${alertas != null && !alertas.isEmpty() ? 'Crítico' : 'Al día'}"
+                              style="font-size: 0.75rem;">Normal</span>
+                    </div>
+
+                    <!-- Safe State (No alerts) -->
+                    <div th:if="${alertas == null || alertas.isEmpty()}" class="text-center py-5">
+                        <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+                            <i class="bi bi-shield-check fs-1"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">¡Todo bajo control!</h6>
+                        <p class="text-muted m-0 small px-4">Todos los insumos y productos disponen de existencias suficientes en almacén.</p>
+                    </div>
+
+                    <!-- Alerts List -->
+                    <div th:if="${alertas != null && !alertas.isEmpty()}" class="d-flex flex-column gap-3">
+                        <div class="alert alert-warning border-0 rounded-4 p-3 d-flex align-items-start gap-2 mb-2" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 text-warning mt-1"></i>
+                            <div>
+                                <span class="fw-bold text-dark">¡Atención!</span>
+                                <small class="d-block text-secondary">Los siguientes artículos se encuentran por debajo del nivel de seguridad establecido (5 unidades).</small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-column gap-2 overflow-auto" style="max-height: 380px;">
+                            <div th:each="prod : ${alertas}" class="p-3 bg-light rounded-4 d-flex justify-content-between align-items-center border">
+                                <div>
+                                    <h6 class="fw-bold m-0 text-dark" style="font-size: 0.95rem;" th:text="${prod.nombreProducto}">Margarita</h6>
+                                    <span class="badge bg-secondary-subtle text-dark rounded-pill px-2 py-0.5 mt-1" style="font-size: 0.75rem;" th:text="${prod.categoria.nombreCategoria}">Pizza</span>
+                                </div>
+                                <div class="text-end d-flex align-items-center gap-3">
+                                    <div>
+                                        <small class="text-muted d-block small">Stock actual</small>
+                                        <span class="badge bg-danger rounded-pill px-3 py-1 fw-bold text-white fs-6" th:text="${prod.stock} + ' u.'">3 u.</span>
+                                    </div>
+                                    <a th:href="@{/admin/inventario}" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
+                                        <i class="bi bi-plus-lg me-1"></i> Abastecer
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

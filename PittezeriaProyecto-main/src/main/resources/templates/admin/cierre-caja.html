@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/sidebar :: html_head('Cierre de Caja - Pizza Eshushon')}"></head>
+<body class="bg-light" style="overflow-x: hidden;">
+
+<div class="d-flex">
+    <!-- Sidebar Fragment -->
+    <div th:replace="~{fragments/sidebar :: sidebar('cierre')}"></div>
+
+    <!-- Main Content Panel -->
+    <div class="flex-grow-1 p-4" style="height: 100vh; overflow-y: auto;">
+
+        <!-- Header -->
+        <div class="mb-4">
+            <h2 class="fw-bold text-dark m-0">Cierre de Caja</h2>
+            <p class="text-muted" style="font-size: 0.95rem;">Auditoría de ingresos, arqueo diario y reportes de facturación</p>
+        </div>
+
+        <!-- Date Filter & Actions Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+            <div class="row align-items-center g-3">
+                <div class="col-lg-7">
+                    <form th:action="@{/admin/reportes/cierre-caja}" method="get" class="d-flex flex-wrap gap-2 align-items-end">
+                        <div style="min-width: 200px;">
+                            <label class="form-label text-muted small fw-bold mb-1">SELECCIONAR FECHA DE ARQUEO</label>
+                            <input type="date" name="fechaBusqueda" class="form-control rounded-3 py-2 border shadow-xs" th:value="${fecha}" required>
+                        </div>
+                        <button type="submit" class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-xs">
+                            <i class="bi bi-search me-2"></i>Consultar Caja
+                        </button>
+                    </form>
+                </div>
+                <div class="col-lg-5 text-lg-end">
+                    <a th:href="@{/admin/reportes/exportar-excel(fecha=${fecha})}" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-xs">
+                        <i class="bi bi-file-earmark-excel-fill me-2"></i>Exportar Excel (.xlsx)
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arqueo Summary Grid -->
+        <div class="row g-3 mb-4">
+            <!-- Selected Date -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 d-flex flex-row align-items-center gap-3 bg-white">
+                    <div class="bg-primary-subtle text-primary rounded-3 p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <i class="bi bi-calendar-event-fill"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-semibold d-block">Fecha del Reporte</small>
+                        <h4 class="fw-bold text-dark m-0" th:text="${#temporals.format(fecha, 'dd/MM/yyyy')}">01/06/2026</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Count -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 d-flex flex-row align-items-center gap-3 bg-white">
+                    <div class="bg-danger-subtle text-danger rounded-3 p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <i class="bi bi-cart-check-fill"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-semibold d-block">Total de Ventas</small>
+                        <h4 class="fw-bold text-dark m-0" th:text="${ventasCount != null ? ventasCount : '0'}">0</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Box Cash Total -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 d-flex flex-row align-items-center gap-3 bg-white">
+                    <div class="bg-success-subtle text-success rounded-3 p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-semibold d-block">Total Recaudado (Sistema)</small>
+                        <h4 class="fw-bold text-success m-0" th:text="${totalSistema != null ? 'S/ ' + #numbers.formatDecimal(totalSistema, 1, 2) : 'S/ 0.00'}">S/ 0.00</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Breakdown by Payment Method -->
+        <h4 class="fw-bold text-dark mb-3 mt-4"><i class="bi bi-diagram-3 me-2 text-danger"></i>Cuadre por Método de Pago</h4>
+
+        <!-- Empty State -->
+        <div th:if="${ventasPorMetodo == null || ventasPorMetodo.isEmpty()}" class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+            <i class="bi bi-slash-circle display-3 text-secondary mb-3"></i>
+            <h5 class="fw-bold text-dark">No se encontraron movimientos financieros</h5>
+            <p class="text-muted m-0">No se registraron transacciones de venta para la fecha seleccionada.</p>
+        </div>
+
+        <!-- Method Grid -->
+        <div th:if="${ventasPorMetodo != null && !ventasPorMetodo.isEmpty()}" class="row g-4">
+            <div th:each="entry : ${ventasPorMetodo}" class="col-12 col-xl-6">
+                <!-- Use dynamic variables to calculate subtotal -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white"
+                     th:with="subtotalMetodo=${#aggregates.sum(entry.value.![total])}">
+                    
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fs-4" th:text="${entry.key == 'EFECTIVO' ? '💵' : entry.key == 'YAPE' ? '📱' : '💳'}">💵</span>
+                            <div>
+                                <h5 class="fw-bold text-dark m-0" th:text="${entry.key}">EFECTIVO</h5>
+                                <small class="text-muted fw-semibold" th:text="${#lists.size(entry.value)} + ' transacciones'">0 transacciones</small>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted d-block small">Subtotal Método</small>
+                            <span class="fw-bold fs-5 text-danger" th:text="'S/ ' + ${#numbers.formatDecimal(subtotalMetodo, 1, 2)}">S/ 0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-start" style="font-size: 0.9rem;">
+                            <thead class="table-light text-secondary">
+                                <tr>
+                                    <th class="py-2">Venta ID</th>
+                                    <th class="py-2">Hora</th>
+                                    <th class="py-2">Cajero</th>
+                                    <th class="py-2 text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="v : ${entry.value}">
+                                    <td class="py-2 fw-bold text-dark" th:text="'#' + ${v.idVenta}">#1</td>
+                                    <td class="py-2 text-muted" th:text="${#temporals.format(v.fecha, 'hh:mm a')}">12:30 PM</td>
+                                    <td class="py-2 fw-semibold text-dark" th:text="${v.empleado.nombre}">Cajero</td>
+                                    <td class="py-2 text-end fw-bold text-dark" th:text="'S/ ' + ${#numbers.formatDecimal(v.total, 1, 2)}">S/ 0.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
